@@ -1,0 +1,64 @@
+#+TITLE: EMMS Quickstart
+#+DATE: <2024-01-04 Thu>
+
+I've been using [[https://www.gnu.org/software/emms/][EMMS]] approximately as long as I've been using emacs,
+sorta. I've had this in my init.el, at least:
+
+#+begin_src elisp
+  (defun cf/vgm ()
+    (interactive)
+    (emms-play-url "https://vgmradio.com/vgmradio.m3u"))
+#+end_src
+
+Not okay. Time to dig into EMMS.
+
+* Installation & Configuration
+
+EMMS is distributed via ELPA, so install it via your package manager
+of choice. I use ~use-package~, and have found that the default
+configuration is fine for my purposes:
+
+#+begin_src elisp
+  (use-package emms
+    :ensure t
+    
+    :config
+    (emms-all)
+
+    :custom
+    (emms-player-list '(emms-player-mpv))
+    (emms-info-functions '(emms-info-native))
+    (emms-player-mpv-update-metadata t))
+#+end_src
+
+* Playing local files
+EMMS uses playlists for everything, as far as I can figure. They're
+just buffers running ~emms-playlist-mode~. You don't play an album
+ad-hoc, you create a ephemeral playlist containing only that album.
+
+I start by running ~M-x emms-play-directory~ (~emms~ works as well, if
+you don't already have a playlist). Select a directory, and your
+playlist is ready.
+
+Hitting ~RET~ plays the file under point. See ~M-x describe-mode~ for
+a list of all local keybindings.
+
+* "Bookmarking" streams
+To get rid of those dumb functions in my init file, I modified EMMS's
+stream file. No, not emacs bookmarks (though those are cool)!
+
+Running ~emms-streams~ will generate a playlist file (for me,
+~~/.emacs.d/emms/streams.emms~, see or change the path in
+~emms-stream-file~) including some well-known internet radio stations,
+and then load it into a buffer. I've added my own preferred stations
+via ~emms-add-url~, and then saved the file.
+
+Now, whenever I invoke ~emms-streams~, it loads my stream file, and I
+can just play the stream I'm interested in. Much better!
+
+* Saving and loading playlists
+I don't find this particularly useful, but it's possible to save and
+load playlists to the filesystem.
+
+~emms-playlist-save~ saves the current playlist, prompting you for the
+format. ~emms-play-playlist~ loads a playlist and begins playing.
