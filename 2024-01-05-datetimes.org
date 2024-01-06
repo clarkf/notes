@@ -1,0 +1,76 @@
+#+TITLE: Dates and times
+#+DATE: <2024-01-05 Fri>
+
+Date and time handling is notoriously hard. Each language and
+environment I've dabbled with has handled it differently, and all have
+both pros and cons.
+
+Interestingly, even time zones are complex. [[https://mm.icann.org/pipermail/tz-announce/2023-December/000080.html][IANA's time zone database
+released 4 updates in 2023 alone]]. Cities change timezones, and not
+just for daylight savings time. Fixing a date and time to a IANA time
+zone, or even a UTC offset, is not guaranteed to be useful.
+
+Recently I've been writing some elisp that deals in date-times, and,
+boy, is it lacking in this area.
+
+Elisp represents points in times in a sort of crazy number of ways:
+
+- "Calendrical date-times" which are a list of the format ~(SECOND
+  MINUTE HOUR DAY MONTH YEAR IGNORED DST ZONE)~. These are the most
+  useful and manipulable.
+- Integral or even floating point timestamps. Often referred to as
+  "unix time stamps." The number of seconds since Jan 1, 1970. These
+  are also somewhat useful, depending on what you're doing.
+- A pair in the format ~(TICKS . HZ)~. Uncommon. Insane.
+- ~(HIGH LOW MICRO PICO)~. I gather this has something to do with Lisp
+  a very, very long time ago. The least useful of all.
+
+Today I needed to be able to find the date-time of midnight of the
+current day in the current time zone, and for tomorrow as well. In
+Python, I might do something like:
+
+#+begin_src python
+  from datetime import datetime, timedelta, timezone
+
+  # confusingly, the astimezone() converts the timezone-naive datetime
+  # to a timezone-aware datetime with the system's timezone
+  now = datetime.now().astimezone()
+
+  # create a copy of now with the time modified. does not mutate.
+  midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+  tomorrow = midnight + timedelta(days=1)
+
+  print(midnight.astimezone(timezone.utc))
+  # > 2024-01-05 08:00:00+00:00
+  print(tomorrow.astimezone(timezone.utc))
+  # > 2024-01-06 08:00:00+00:00
+#+end_src
+
+Pretty straightforward. I get the current time (as a naive date-time),
+set the associated timezone to the system timezone, modify the time
+portion to midnight, and represent it as UTC. For tomorrow, I can just
+add one day.
+
+Elisp, unfortunately doesn't have a way (that I could find) to set the
+time portion of a timestamp, 
+
+The elisp solution is much noisier, since I've had to use
+~encode-time~ and ~decode-time~ liberally, and I've had to write my
+own routines for adding a duration to a date-time as well as modifying
+the time portion.
+
+I haven't fully settled on a solution in elisp, but it's looking like
+I'm going to have to use a mixture of the various representations.
+Probably something like:
+
+#+begin_src elisp
+  (let* ((now (decode-time (current-time))) ; calendrical
+         (midnight (set-time now 0 0 0)) ; pretend this exists
+         (midnight-ts (float-time midnight)) ; number of seconds
+         (tomorrow (add-days midnight-ts)))
+    ((time-to-utc midnight) . (time-to-utc tomorrow)))
+#+end_src
+
+The problem, though, is that I don't believe ~set-time~, ~add-days~
+/or/ ~time-to-utc~ exist. Not insurmountable, but more than I was
+expecting to have to do.
