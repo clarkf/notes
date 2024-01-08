@@ -1,0 +1,129 @@
+#+TITLE: vc.el is great and you should use it
+#+DATE: <2024-01-08 Mon>
+
+In the last year or so, I've been working on doing as much as possible
+within Emacs. It's not been /that/ difficult, since I mainly lived in
+a virtual terminal before that. Excluding web browsing, two activities
+made up the vast majority of my non-Emacs activities: git and file
+management. I've been working on using dired more, and that's been
+going well.
+
+Version control has been tough. I learned git long ago through its
+command line interface, and have always found alternative interfaces
+clunky. I've always felt like they just made things more roundabout
+and difficult. Why would I click through a GUI when I could just type
+a few commands?
+
+Developers often say that Emacs has two "killer features": org-mode
+and [[https://magit.vc/][Magit]]. Magit is a git interface for Emacs that's often said to be
+the best git UI period. I don't disagree, but mostly because I've not
+really used it.
+
+Emacs has shipped with ~vc.el~ since 1992, and I figured I'd try to
+adopt that workflow before resorting to a third-party package. Being
+as old as it is, the terminology is quite weird, but if you can wrap
+your head around it, it's quite nice.
+
+* My workflow
+
+80% (at least) of my git interactions are ~git status~, ~git add~,
+~git diff~ and ~git commit~. The remainder are mostly made up of ~git
+branch~, ~git fetch~, ~git pull~, ~git push~ and the occasional ~git
+rebase~.
+
+** ~git status~
+
+The primary development workflow starts with ~project-vc-dir~, bound
+to ~C-x p v~ by default. This summons vc.el's version of ~git status~,
+showing an overview of the current index. It, like all special mode
+buffers, can be refreshed with ~revert-buffer~, bound to ~g~ by
+default.
+
+vc.el boasts this special dwim-style command, ~vc-next-action~, which
+attempts to intelligently do the correct thing given the context. I
+avoid this wherever possible, since it mostly confuses me (more on
+this later).
+
+For some reason that eludes me, vc.el often will show ignored files in
+its summary, and sometimes files that haven't been changed in the
+index. This can be cleaned up via ~vc-dir-hide-state~ (bound to ~x~ in
+vc-mode).
+
+** ~git add~
+
+Rather than using ~git add~ to stage files, vc.el calls this
+"registering." Registering a file (whether new or changed) is as
+simple as moving the point over the filename and invoking
+~vc-register~ (bound to ~i~ in vc-mode by default).
+
+Before committing, it's good practice to take a peek at the diff.
+vc.el actually has two ways to do this, ~vc-diff~ (bound to ~=~ in
+vc-mode) which shows the diff of the selected file/directory and
+~vc-root-diff~ (bound to ~D~) which shows the full diff regardless of
+point. Either will display the diff using Emacs' fantastic
+~diff-mode~.
+
+** ~git commit~
+
+Once I've got the diff in a good place and all of my changes
+registered, I can proceed to committing. This part, at first, confused
+me the most.
+
+To begin committing, move point to the root directory (~.~) and invoke
+~vc-next-action~ (~v~ in vc-mode). The position of point matters, if
+you press ~v~ on a subdirectory, it will attempt to commit only that
+subset of the change.
+
+This will pop up a nice buffer that allows you to author your commit
+message. This mode has some local bindings as well, notably ~C-c C-e~
+for ~vc-git-log-edit-toggle-amend~, which switches the commit to
+ammend the previous one, and ~C-c C-s~ for
+~vc-git-log-edit-toggle-sigonff~, which signs off on the commit
+(analogous to ~-s~ on the CLI).
+
+At any point, ~C-c C-d~ or ~log-edit-show-diff~ will pop the diff up
+for your reference.
+
+When finished ~C-c C-C~ or ~log-edit-done~ will complete the commit
+with your message.
+
+** ~git push~, ~git pull~
+
+In the vc-mode buffer, ~vc-pull~ or ~+~ will begin an async ~git
+pull~. By default, it executes a simple pull, however if invoked with
+a prefix argument (~C-u +~), ~vc-pull~ will let you edit the specific
+git command before executing.
+
+~vc-push~ or ~P~ works basically the same way, except for executing a
+~git push~. For example, to perform a force push, I will invoke ~C-u
+P~, and edit the command to something like ~git push --force -u origin
+branch_name~.
+
+** The escape hatch, ~project-async-shell-command~
+
+Occasionally, I'll want to do something that vc.el doesn't expose
+directly. That's okay! ~project-async-shell-command~ (by default bound
+to ~C-x p &~) is a variant of ~async-shell-command~ (~M-&~) that sets
+the working directory to the root of the current project. This is
+perfect for running ad-hoc git commands.
+
+For example, if I want to reset my current branch to, say
+~upstream/main~, I can invoke ~project-async-shell-command~ and type
+~git reset --hard upstrea/master~, all within Emacs! Fantastic!
+
+Rebases can be performed in the same way, although ~git-rebase~
+interactively invokes ~$EDITOR~ which can be quite tricky, since
+you're within ~$EDITOR~ already. I'm not 100% certain on the correct
+way to manage this yet.
+
+* Give vc.el a shot
+
+If you're an Emacs purist, or are just looking to more tightly
+integrate your git workflow into your development process, give vc.el
+a try. I've found that [[https://en.wikipedia.org/wiki/Pareto_principle][it handles 80% of my needs]] beautifully. It's
+fast, battle-tested, and ships with emacs by default.
+
+Personally, I'm very satisfied. Though I kind of miss the directness
+and precision of the git CLI, being able to diff and commit without
+interrupting my actual workflow makes up for it. And the CLI is always
+there when I really need it.
